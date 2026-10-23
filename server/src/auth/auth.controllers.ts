@@ -48,8 +48,9 @@ export const registerUser: RequestHandler<
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const accessToken = generateAccessToken(email);
-    const refreshToken = generateRefreshToken(email);
+    const sessionId = generateRandomToken();
+    const accessToken = generateAccessToken(email, sessionId);
+    const refreshToken = generateRefreshToken(email, sessionId);
     const refreshTokenHash = await bcrypt.hash(refreshToken, SALT_ROUNDS);
 
     const user = await User.create({
@@ -58,6 +59,7 @@ export const registerUser: RequestHandler<
       passwordHash,
       isEmailVerified: false,
       refreshToken: refreshTokenHash,
+      sessionId,
     });
 
     let welcomeEmailSent = false;
@@ -132,11 +134,19 @@ export const loginUser: RequestHandler<
       return;
     }
 
-    const accessToken = generateAccessToken(user.email);
-    const refreshToken = generateRefreshToken(user.email);
+    if (!user.isEmailVerified) {
+      res.status(403).json({ message: 'Please verify your email before signing in.', code: 'EMAIL_NOT_VERIFIED' });
+      return;
+    }
+
+    // Replacing the stored session invalidates every previous device immediately.
+    const sessionId = generateRandomToken();
+    const accessToken = generateAccessToken(user.email, sessionId);
+    const refreshToken = generateRefreshToken(user.email, sessionId);
     const refreshTokenHash = await bcrypt.hash(refreshToken, SALT_ROUNDS);
 
     user.refreshToken = refreshTokenHash;
+    user.sessionId = sessionId;
     await user.save();
 
     res
@@ -172,7 +182,10 @@ export const logoutUser: RequestHandler = async (req, res) => {
     if (refreshToken) {
       const payload = verifyRefreshToken(refreshToken);
       if (payload?.email) {
-        await User.updateOne({ email: payload.email }, { $set: { refreshToken: '' } });
+        await User.updateOne(
+          { email: payload.email, sessionId: payload.sessionId },
+          { $set: { refreshToken: '', sessionId: '' } }
+        );
       }
     }
 
@@ -207,7 +220,7 @@ export const refreshAccessToken: RequestHandler = async (req, res) => {
     }
 
     const user = await User.findOne({ email: payload.email });
-    if (!user || !user.refreshToken) {
+    if (!user || !user.refreshToken || !user.sessionId || user.sessionId !== payload.sessionId) {
       res.status(401).json({ message: 'Invalid refresh token session' });
       return;
     }
@@ -218,25 +231,13 @@ export const refreshAccessToken: RequestHandler = async (req, res) => {
       return;
     }
 
-    const newAccessToken = generateAccessToken(user.email);
-    const newRefreshToken = generateRefreshToken(user.email);
-    user.refreshToken = await bcrypt.hash(newRefreshToken, SALT_ROUNDS);
-    await user.save();
+    // Refresh-token rotation is intentionally disabled for now. The same
+    // refresh token remains valid until expiry, logout, password reset, or a new login.
+    const newAccessToken = generateAccessToken(user.email, user.sessionId);
 
-    res
-      .status(200)
-      .set('Cache-Control', 'no-store')
-      .cookie('refreshToken', newRefreshToken, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: REFRESH_TOKEN_MAX_AGE,
-        path: '/api/auth',
-      })
-      .json({
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-      });
+    res.status(200).set('Cache-Control', 'no-store').json({
+      accessToken: newAccessToken,
+    });
   } catch (error: unknown) {
     console.error('Refresh token failed:', error);
     res.status(500).json({ message: 'Unable to refresh token' });
@@ -307,6 +308,7 @@ export const resetPassword: RequestHandler<
       resetPasswordExpires: undefined,
     });
     user.refreshToken = '';
+    user.sessionId = '';
     await user.save();
 
     res.status(200).json({ message: 'Password has been reset successfully' });
