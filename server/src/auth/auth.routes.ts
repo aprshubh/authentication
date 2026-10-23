@@ -6,6 +6,7 @@ import {
   logoutUser,
   refreshAccessToken,
   registerUser,
+  resendVerificationEmailPublic,
   resetPassword,
   sendVerificationEmailHandler,
   verifyEmailHandler,
@@ -32,6 +33,7 @@ authRouter.post("/reset-password",authLimiter,validateResetPassword,resetPasswor
 
 authRouter.get("/me", authenticate, getCurrentUser);
 authRouter.post("/send-verification", sendVerificationLimiter, authenticateAllowUnverified, sendVerificationEmailHandler);
+authRouter.post("/resend-verification", sendVerificationLimiter, validateForgotPassword, resendVerificationEmailPublic);
 authRouter.post("/verify-email", verificationLimiter, authenticateAllowUnverified, validateVerifyEmail, verifyEmailHandler);
 
 export default authRouter;
