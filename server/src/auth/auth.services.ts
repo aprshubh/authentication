@@ -4,13 +4,14 @@ import { env } from '../config/env.js';
 
 export interface TokenPayload {
   email: string;
+  sessionId?: string;
 }
 
-export const generateAccessToken = (email: string): string =>
-  jwt.sign({ email }, env.ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
+export const generateAccessToken = (email: string, sessionId: string): string =>
+  jwt.sign({ email, sessionId }, env.ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
 
-export const generateRefreshToken = (email: string): string =>
-  jwt.sign({ email }, env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
+export const generateRefreshToken = (email: string, sessionId: string): string =>
+  jwt.sign({ email, sessionId }, env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
 
 export const verifyAccessToken = (token: string): TokenPayload | null => {
   try {

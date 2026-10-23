@@ -63,7 +63,7 @@ export default function DashboardScreen() {
             </View>
             <Text style={styles.statusTitle}>Session Active</Text>
             <Text style={styles.statusSubtitle}>
-              Your credentials are verified and secured with end-to-end encryption.
+              Your session is protected by server-validated access tokens and email verification.
             </Text>
             <View style={styles.metricsRow}>
               <View style={styles.metricItem}>
@@ -72,8 +72,8 @@ export default function DashboardScreen() {
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>ENCRYPTION</Text>
-                <Text style={styles.metricValue}>AES-256</Text>
+                <Text style={styles.metricLabel}>SESSION</Text>
+                <Text style={styles.metricValue}>1 device</Text>
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricItem}>
@@ -90,13 +90,13 @@ export default function DashboardScreen() {
           <View style={styles.grid}>
             <View style={styles.gridCard}>
               <Ionicons name="finger-print" size={20} color="#AAAAAA" style={styles.gridIcon} />
-              <Text style={styles.cardValue}>99.9%</Text>
-              <Text style={styles.cardLabel}>Security Score</Text>
+              <Text style={styles.cardValue}>15 min</Text>
+              <Text style={styles.cardLabel}>Access Token Lifetime</Text>
             </View>
             <View style={styles.gridCard}>
               <Ionicons name="phone-portrait-outline" size={20} color="#AAAAAA" style={styles.gridIcon} />
-              <Text style={styles.cardValue}>1 Device</Text>
-              <Text style={styles.cardLabel}>Active Session</Text>
+              <Text style={styles.cardValue}>Single</Text>
+              <Text style={styles.cardLabel}>Session Policy</Text>
             </View>
           </View>
 

@@ -3,8 +3,8 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Link } from 'expo-router';
 import { AuthAlert, AuthButton, AuthCard, AuthInput } from '@/features/auth/components';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { forgotPasswordSchema } from '@/features/auth/schemas/auth.schema';
 import { theme } from '@/constants/theme';
+import { forgotPasswordSchema } from '@/features/auth/schemas/auth.schema';
 
 export default function ForgotPasswordScreen() {
   const { forgotPassword, isLoading, error: authError, clearError } = useAuth();
@@ -51,7 +51,7 @@ export default function ForgotPasswordScreen() {
     try {
       const response = await forgotPassword({ email: result.data.email });
       setSuccessMessage(
-        response?.message || 'If an account exists, a secure recovery code has been sent.'
+        response?.message || 'If an account exists, a recovery token has been sent.'
       );
     } catch {
       // Handled by auth context
@@ -61,9 +61,7 @@ export default function ForgotPasswordScreen() {
   return (
     <AuthCard
       title="Reset Password"
-      subtitle="Enter your email to receive a recovery link"
-      iconName="mail-outline"
-      badgeText="ACCOUNT RECOVERY"
+      subtitle="Enter your email to receive a recovery token"
     >
       <AuthAlert type="error" message={authError} />
       <AuthAlert type="success" message={successMessage} />
@@ -82,7 +80,7 @@ export default function ForgotPasswordScreen() {
       />
 
       <AuthButton
-        title="Send Recovery Link"
+        title="Send Recovery Token"
         onPress={handleSubmit}
         isLoading={isLoading}
       />

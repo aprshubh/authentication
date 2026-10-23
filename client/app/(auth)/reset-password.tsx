@@ -3,8 +3,8 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { AuthAlert, AuthButton, AuthCard, AuthInput } from '@/features/auth/components';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { resetPasswordSchema } from '@/features/auth/schemas/auth.schema';
 import { theme } from '@/constants/theme';
+import { resetPasswordSchema } from '@/features/auth/schemas/auth.schema';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -81,8 +81,6 @@ export default function ResetPasswordScreen() {
     <AuthCard
       title="New Password"
       subtitle="Enter your token and set a new password"
-      iconName="shield-checkmark-outline"
-      badgeText="SECURE RESET"
     >
       <AuthAlert type="error" message={authError} />
       <AuthAlert type="success" message={successMessage} />

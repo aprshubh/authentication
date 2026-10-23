@@ -4,7 +4,6 @@ import { Link, useRouter } from 'expo-router';
 import { AuthAlert, AuthButton, AuthCard, AuthInput } from '@/features/auth/components';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { registerSchema } from '@/features/auth/schemas/auth.schema';
-import { theme } from '@/constants/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -92,8 +91,6 @@ export default function RegisterScreen() {
     <AuthCard
       title="Create Account"
       subtitle="Join with a secure account"
-      iconName="person-add-outline"
-      badgeText="NEW ACCOUNT"
     >
       <AuthAlert type="error" message={authError} />
 

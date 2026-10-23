@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
+import { randomInt } from 'node:crypto';
 import type { RequestHandler } from 'express';
 import { env } from '../config/env.js';
 import {
-  sendEmail,
   sendPasswordResetEmail,
   sendVerificationOtpEmail,
   sendWelcomeEmail,
@@ -26,6 +26,34 @@ import type { AuthenticatedRequest } from './auth.middleware.js';
 const SALT_ROUNDS = 12;
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 const RESET_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
+const VERIFICATION_EMAIL_WINDOW = 60 * 60 * 1000;
+const VERIFICATION_EMAIL_MIN_INTERVAL = 60 * 1000;
+const MAX_VERIFICATION_EMAILS_PER_HOUR = 5;
+
+const reserveVerificationEmailSlot = (user: InstanceType<typeof User>): boolean => {
+  const now = Date.now();
+  const windowStart = user.verificationSentWindowStart?.getTime();
+
+  if (!windowStart || now - windowStart >= VERIFICATION_EMAIL_WINDOW) {
+    user.verificationSentWindowStart = new Date(now);
+    user.verificationSentCount = 0;
+  }
+
+  if (
+    user.verificationLastSentAt &&
+    now - user.verificationLastSentAt.getTime() < VERIFICATION_EMAIL_MIN_INTERVAL
+  ) {
+    return false;
+  }
+
+  if ((user.verificationSentCount ?? 0) >= MAX_VERIFICATION_EMAILS_PER_HOUR) {
+    return false;
+  }
+
+  user.verificationLastSentAt = new Date(now);
+  user.verificationSentCount = (user.verificationSentCount ?? 0) + 1;
+  return true;
+};
 
 export const registerUser: RequestHandler<
   Record<string, string>,
@@ -48,8 +76,9 @@ export const registerUser: RequestHandler<
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const accessToken = generateAccessToken(email);
-    const refreshToken = generateRefreshToken(email);
+    const sessionId = generateRandomToken();
+    const accessToken = generateAccessToken(email, sessionId);
+    const refreshToken = generateRefreshToken(email, sessionId);
     const refreshTokenHash = await bcrypt.hash(refreshToken, SALT_ROUNDS);
 
     const user = await User.create({
@@ -58,6 +87,7 @@ export const registerUser: RequestHandler<
       passwordHash,
       isEmailVerified: false,
       refreshToken: refreshTokenHash,
+      sessionId,
     });
 
     let welcomeEmailSent = false;
@@ -132,11 +162,19 @@ export const loginUser: RequestHandler<
       return;
     }
 
-    const accessToken = generateAccessToken(user.email);
-    const refreshToken = generateRefreshToken(user.email);
+    if (!user.isEmailVerified) {
+      res.status(403).json({ message: 'Please verify your email before signing in.', code: 'EMAIL_NOT_VERIFIED' });
+      return;
+    }
+
+    // Replacing the stored session invalidates every previous device immediately.
+    const sessionId = generateRandomToken();
+    const accessToken = generateAccessToken(user.email, sessionId);
+    const refreshToken = generateRefreshToken(user.email, sessionId);
     const refreshTokenHash = await bcrypt.hash(refreshToken, SALT_ROUNDS);
 
     user.refreshToken = refreshTokenHash;
+    user.sessionId = sessionId;
     await user.save();
 
     res
@@ -171,8 +209,16 @@ export const logoutUser: RequestHandler = async (req, res) => {
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     if (refreshToken) {
       const payload = verifyRefreshToken(refreshToken);
-      if (payload?.email) {
-        await User.updateOne({ email: payload.email }, { $set: { refreshToken: '' } });
+      if (payload?.email && payload.sessionId) {
+        const user = await User.findOne({
+          email: payload.email,
+          sessionId: payload.sessionId,
+        });
+        if (user) {
+          user.refreshToken = '';
+          user.sessionId = '';
+          await user.save();
+        }
       }
     }
 
@@ -207,7 +253,7 @@ export const refreshAccessToken: RequestHandler = async (req, res) => {
     }
 
     const user = await User.findOne({ email: payload.email });
-    if (!user || !user.refreshToken) {
+    if (!user || !user.refreshToken || !user.sessionId || user.sessionId !== payload.sessionId) {
       res.status(401).json({ message: 'Invalid refresh token session' });
       return;
     }
@@ -218,25 +264,13 @@ export const refreshAccessToken: RequestHandler = async (req, res) => {
       return;
     }
 
-    const newAccessToken = generateAccessToken(user.email);
-    const newRefreshToken = generateRefreshToken(user.email);
-    user.refreshToken = await bcrypt.hash(newRefreshToken, SALT_ROUNDS);
-    await user.save();
+    // Refresh-token rotation is intentionally disabled for now. The same
+    // refresh token remains valid until expiry, logout, password reset, or a new login.
+    const newAccessToken = generateAccessToken(user.email, user.sessionId);
 
-    res
-      .status(200)
-      .set('Cache-Control', 'no-store')
-      .cookie('refreshToken', newRefreshToken, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: REFRESH_TOKEN_MAX_AGE,
-        path: '/api/auth',
-      })
-      .json({
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-      });
+    res.status(200).set('Cache-Control', 'no-store').json({
+      accessToken: newAccessToken,
+    });
   } catch (error: unknown) {
     console.error('Refresh token failed:', error);
     res.status(500).json({ message: 'Unable to refresh token' });
@@ -265,6 +299,11 @@ export const forgotPassword: RequestHandler<
         await sendPasswordResetEmail(user.email, user.name, resetToken);
       } catch (mailError) {
         console.error('Password reset email delivery failed:', mailError);
+        user.set({
+          resetPasswordToken: undefined,
+          resetPasswordExpires: undefined,
+        });
+        await user.save();
       }
     }
 
@@ -307,6 +346,7 @@ export const resetPassword: RequestHandler<
       resetPasswordExpires: undefined,
     });
     user.refreshToken = '';
+    user.sessionId = '';
     await user.save();
 
     res.status(200).json({ message: 'Password has been reset successfully' });
@@ -354,7 +394,12 @@ export const sendVerificationEmailHandler: RequestHandler = async (
       return;
     }
 
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    if (!reserveVerificationEmailSlot(user)) {
+      res.status(429).json({ message: 'Please wait before requesting another verification email.' });
+      return;
+    }
+
+    const verificationCode = randomInt(100000, 1000000).toString();
     user.verificationCode = hashToken(verificationCode);
     user.verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
     await user.save();
@@ -363,12 +408,52 @@ export const sendVerificationEmailHandler: RequestHandler = async (
       await sendVerificationOtpEmail(user.email, user.name, verificationCode);
     } catch (mailError) {
       console.error('Verification email delivery failed:', mailError);
+      user.set({
+        verificationCode: undefined,
+        verificationExpires: undefined,
+      });
+      await user.save();
+      res.status(502).json({ message: 'Unable to send verification email. Please try again later.' });
+      return;
     }
 
     res.status(200).json({ message: 'Verification code sent to your email.' });
   } catch (error) {
     console.error('Send verification failed:', error);
     res.status(500).json({ message: 'Failed to send verification email' });
+  }
+};
+
+// Public resend endpoint: always returns the same response to avoid account enumeration.
+export const resendVerificationEmailPublic: RequestHandler = async (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+
+  try {
+    const user = email ? await User.findOne({ email }) : null;
+    if (user && !user.isEmailVerified && reserveVerificationEmailSlot(user)) {
+      const verificationCode = randomInt(100000, 1000000).toString();
+      user.verificationCode = hashToken(verificationCode);
+      user.verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+      await user.save();
+
+      try {
+        await sendVerificationOtpEmail(user.email, user.name, verificationCode);
+      } catch (mailError) {
+        console.error('Verification email delivery failed:', mailError);
+        user.set({
+          verificationCode: undefined,
+          verificationExpires: undefined,
+        });
+        await user.save();
+      }
+    }
+
+    res.status(200).json({
+      message: 'If this account exists and needs verification, a code will be sent shortly.',
+    });
+  } catch (error) {
+    console.error('Public verification request failed:', error);
+    res.status(500).json({ message: 'Unable to process verification request.' });
   }
 };
 

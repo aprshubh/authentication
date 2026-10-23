@@ -1,7 +1,6 @@
 import { env } from '../config/env.js';
 import {
   createPasswordResetEmail,
-  createVerificationEmail,
   createVerificationOtpEmail,
   createWelcomeEmail,
   type EmailContent,
@@ -35,6 +34,9 @@ export const sendEmail = async ({
   const from = env.RESEND_FROM_EMAIL || 'Auth App <noreply@resend.dev>';
 
   if (!apiKey) {
+    if (env.NODE_ENV === 'production') {
+      throw new Error('RESEND_API_KEY must be configured in production.');
+    }
     console.warn(
       `[MailService Mock/Warning] Email to ${to} not dispatched because RESEND_API_KEY is not configured.`
     );
@@ -74,12 +76,6 @@ export const sendEmail = async ({
 
 export const sendWelcomeEmail = (to: string, name: string) =>
   sendEmail({ to, ...createWelcomeEmail(name) });
-
-export const sendVerificationEmail = (
-  to: string,
-  name: string,
-  verificationUrl: string,
-) => sendEmail({ to, ...createVerificationEmail(name, verificationUrl) });
 
 export const sendVerificationOtpEmail = (
   to: string,

@@ -6,7 +6,6 @@ import {
   Text,
   TouchableOpacityProps,
   TouchableWithoutFeedback,
-  View,
 } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 

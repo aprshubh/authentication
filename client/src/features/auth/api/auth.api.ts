@@ -32,6 +32,10 @@ export const authApi = {
     return apiClient.post<VerificationResponse>('/auth/send-verification');
   },
 
+  resendVerificationEmail: async (payload: ForgotPasswordPayload): Promise<VerificationResponse> => {
+    return apiClient.post<VerificationResponse>('/auth/resend-verification', payload);
+  },
+
   verifyEmail: async (payload: VerifyEmailPayload): Promise<VerificationResponse> => {
     return apiClient.post<VerificationResponse>('/auth/verify-email', payload);
   },

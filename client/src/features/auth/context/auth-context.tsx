@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { setAuthToken } from '@/lib/api-client';
+import { setAuthToken, setOnSessionExpired } from '@/lib/api-client';
 import { storage } from '@/utils/storage';
 import { authApi } from '../api/auth.api';
 import {
@@ -49,6 +49,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearError = useCallback(() => {
     setError(null);
+  }, []);
+
+  useEffect(() => {
+    setOnSessionExpired(() => {
+      setUser(null);
+      setToken(null);
+      setRefreshToken(null);
+      setError('Your session expired or was used on another device. Please sign in again.');
+      void storage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      void storage.removeItem(STORAGE_KEYS.USER);
+    });
+    return () => setOnSessionExpired(null);
   }, []);
 
   // Restore saved session on app mount
@@ -158,6 +170,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const response = await authApi.resetPassword(payload);
+      await storage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      await storage.removeItem(STORAGE_KEYS.USER);
+      setUser(null);
+      setToken(null);
+      setRefreshToken(null);
+      setAuthToken(null);
       return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Password reset failed. Please try again.';
@@ -188,7 +206,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const response = await authApi.verifyEmail(payload);
-      setUser((prev) => (prev ? { ...prev, isEmailVerified: true } : null));
+      if (user) {
+        const verifiedUser = { ...user, isEmailVerified: true };
+        setUser(verifiedUser);
+        await storage.setItem(STORAGE_KEYS.USER, JSON.stringify(verifiedUser));
+      } else {
+        setUser((prev) => (prev ? { ...prev, isEmailVerified: true } : null));
+      }
       return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Email verification failed.';
@@ -197,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const updateAvatar = useCallback((avatarUrl: string) => {
     setUser((prev) => {

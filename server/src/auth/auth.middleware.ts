@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { verifyAccessToken } from './auth.services.js';
 import type { IUser } from './auth.models.js';
 import { User } from './auth.models.js';
@@ -11,10 +11,11 @@ export interface AuthenticatedRequest extends Request {
   user?: AuthenticatedUser;
 }
 
-export const authenticate = async (
+const authenticateUser = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
+  requireVerifiedEmail: boolean
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -25,15 +26,20 @@ export const authenticate = async (
   const token = authHeader.substring(7);
   const payload = verifyAccessToken(token);
 
-  if (!payload?.email) {
+  if (!payload?.email || !payload.sessionId) {
     res.status(401).json({ message: 'Invalid or expired access token' });
     return;
   }
 
   try {
     const user = await User.findOne({ email: payload.email }).select('-passwordHash');
-    if (!user) {
-      res.status(401).json({ message: 'User not found' });
+    if (!user || !user.sessionId || user.sessionId !== payload.sessionId) {
+      res.status(401).json({ message: 'Session is no longer valid. Please sign in again.' });
+      return;
+    }
+
+    if (requireVerifiedEmail && !user.isEmailVerified) {
+      res.status(403).json({ message: 'Please verify your email before accessing the app.', code: 'EMAIL_NOT_VERIFIED' });
       return;
     }
 
@@ -44,3 +50,9 @@ export const authenticate = async (
     res.status(500).json({ message: 'Authentication error' });
   }
 };
+
+export const authenticate: RequestHandler = (req, res, next) =>
+  void authenticateUser(req as AuthenticatedRequest, res, next, true);
+
+export const authenticateAllowUnverified: RequestHandler = (req, res, next) =>
+  void authenticateUser(req as AuthenticatedRequest, res, next, false);
