@@ -43,7 +43,7 @@ export default function VerifyEmailScreen() {
     clearError();
     setScreenError('');
     setMessage('');
-    if (!/^\\d{6}$/.test(code.trim())) {
+    if (!/^\d{6}$/.test(code.trim())) {
       setScreenError('Enter the 6-digit code sent to your email.');
       return;
     }
@@ -83,7 +83,7 @@ export default function VerifyEmailScreen() {
 
         <TextInput
           value={code}
-          onChangeText={(value) => setCode(value.replace(/\\D/g, '').slice(0, 6))}
+          onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))}
           keyboardType="number-pad"
           autoComplete="one-time-code"
           maxLength={6}
