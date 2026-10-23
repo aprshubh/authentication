@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Link } from 'expo-router';
 import { AuthAlert, AuthButton, AuthCard, AuthInput } from '@/features/auth/components';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { theme } from '@/constants/theme';
 import { forgotPasswordSchema } from '@/features/auth/schemas/auth.schema';
 
 export default function ForgotPasswordScreen() {
