@@ -16,7 +16,7 @@ export const API_BASE_URL = getBaseUrl();
 let authToken: string | null = null;
 let onSessionExpired: (() => void) | null = null;
 let isRefreshing = false;
-let refreshSubscribers: Array<(token: string | null) => void> = [];
+let refreshSubscribers: ((token: string | null) => void)[] = [];
 
 const onTokenRefreshed = (token: string | null) => {
   refreshSubscribers.forEach((callback) => callback(token));
@@ -172,7 +172,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       if ('message' in data && typeof (data as { message: unknown }).message === 'string') {
         errorMessage = (data as { message: string }).message;
       } else if ('errors' in data && Array.isArray((data as { errors: unknown }).errors)) {
-        const firstError = (data as { errors: Array<{ message?: string }> }).errors[0];
+        const firstError = (data as { errors: { message?: string }[] }).errors[0];
         if (firstError?.message) {
           errorMessage = firstError.message;
         }
