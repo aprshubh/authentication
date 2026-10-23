@@ -62,8 +62,6 @@ export default function ForgotPasswordScreen() {
     <AuthCard
       title="Reset Password"
       subtitle="Enter your email to receive a recovery link"
-      iconName="mail-outline"
-      badgeText="ACCOUNT RECOVERY"
     >
       <AuthAlert type="error" message={authError} />
       <AuthAlert type="success" message={successMessage} />
