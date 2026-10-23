@@ -35,32 +35,6 @@ export const createWelcomeEmail = (name: string): EmailContent => {
   };
 };
 
-export const createVerificationEmail = (
-  name: string,
-  verificationUrl: string,
-): EmailContent => {
-  const safeName = escapeHtml(name);
-  const safeUrl = escapeHtml(verificationUrl);
-
-  return {
-    subject: 'Verify your email address',
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1F2937;">
-        <h2 style="color: #2563EB;">Verify Your Email</h2>
-        <p>Hi ${safeName},</p>
-        <p>Please confirm your email address by clicking the button below:</p>
-        <div style="margin: 24px 0;">
-          <a href="${safeUrl}" style="background-color: #2563EB; color: #FFFFFF; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
-            Verify Email Address
-          </a>
-        </div>
-        <p style="font-size: 13px; color: #6B7280;">If the button above doesn't work, copy and paste this link in your browser:<br/>${safeUrl}</p>
-      </div>
-    `,
-    text: `Hi ${name},\n\nPlease verify your email address by opening this link:\n${verificationUrl}`,
-  };
-};
-
 export const createVerificationOtpEmail = (
   name: string,
   otpCode: string,
