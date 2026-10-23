@@ -2,25 +2,30 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import authRouter from './auth/auth.routes.js';
 import mediaRouter from './media/media.routes.js';
+import { env } from './config/env.js';
 
 const app = express();
 
+const allowedOrigins = new Set(
+  env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+);
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin) {
+  res.vary('Origin');
+
+  if (origin && allowedOrigins.has(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+    );
   }
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-  );
 
   if (req.method === 'OPTIONS') {
-    res.sendStatus(204);
+    res.sendStatus(origin && !allowedOrigins.has(origin) ? 403 : 204);
     return;
   }
   next();
