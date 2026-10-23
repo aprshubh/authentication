@@ -386,6 +386,39 @@ export const sendVerificationEmailHandler: RequestHandler = async (
   }
 };
 
+// Public resend endpoint: always returns the same response to avoid account enumeration.
+export const resendVerificationEmailPublic: RequestHandler = async (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+
+  try {
+    const user = email ? await User.findOne({ email }) : null;
+    if (user && !user.isEmailVerified) {
+      const verificationCode = randomInt(100000, 1000000).toString();
+      user.verificationCode = hashToken(verificationCode);
+      user.verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+      await user.save();
+
+      try {
+        await sendVerificationOtpEmail(user.email, user.name, verificationCode);
+      } catch (mailError) {
+        console.error('Verification email delivery failed:', mailError);
+        user.set({
+          verificationCode: undefined,
+          verificationExpires: undefined,
+        });
+        await user.save();
+      }
+    }
+
+    res.status(200).json({
+      message: 'If this account exists and needs verification, a code has been sent.',
+    });
+  } catch (error) {
+    console.error('Public verification request failed:', error);
+    res.status(500).json({ message: 'Unable to process verification request.' });
+  }
+};
+
 export const verifyEmailHandler: RequestHandler = async (
   req: AuthenticatedRequest,
   res
