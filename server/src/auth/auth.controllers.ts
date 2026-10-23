@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { randomInt } from 'node:crypto';
 import type { RequestHandler } from 'express';
 import { env } from '../config/env.js';
 import {
@@ -356,7 +357,7 @@ export const sendVerificationEmailHandler: RequestHandler = async (
       return;
     }
 
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationCode = randomInt(100000, 1000000).toString();
     user.verificationCode = hashToken(verificationCode);
     user.verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
     await user.save();
