@@ -26,6 +26,34 @@ import type { AuthenticatedRequest } from './auth.middleware.js';
 const SALT_ROUNDS = 12;
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 const RESET_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
+const VERIFICATION_EMAIL_WINDOW = 60 * 60 * 1000;
+const VERIFICATION_EMAIL_MIN_INTERVAL = 60 * 1000;
+const MAX_VERIFICATION_EMAILS_PER_HOUR = 5;
+
+const reserveVerificationEmailSlot = (user: InstanceType<typeof User>): boolean => {
+  const now = Date.now();
+  const windowStart = user.verificationSentWindowStart?.getTime();
+
+  if (!windowStart || now - windowStart >= VERIFICATION_EMAIL_WINDOW) {
+    user.verificationSentWindowStart = new Date(now);
+    user.verificationSentCount = 0;
+  }
+
+  if (
+    user.verificationLastSentAt &&
+    now - user.verificationLastSentAt.getTime() < VERIFICATION_EMAIL_MIN_INTERVAL
+  ) {
+    return false;
+  }
+
+  if ((user.verificationSentCount ?? 0) >= MAX_VERIFICATION_EMAILS_PER_HOUR) {
+    return false;
+  }
+
+  user.verificationLastSentAt = new Date(now);
+  user.verificationSentCount = (user.verificationSentCount ?? 0) + 1;
+  return true;
+};
 
 export const registerUser: RequestHandler<
   Record<string, string>,
@@ -361,6 +389,11 @@ export const sendVerificationEmailHandler: RequestHandler = async (
       return;
     }
 
+    if (!reserveVerificationEmailSlot(user)) {
+      res.status(429).json({ message: 'Please wait before requesting another verification email.' });
+      return;
+    }
+
     const verificationCode = randomInt(100000, 1000000).toString();
     user.verificationCode = hashToken(verificationCode);
     user.verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
@@ -392,7 +425,7 @@ export const resendVerificationEmailPublic: RequestHandler = async (req, res) =>
 
   try {
     const user = email ? await User.findOne({ email }) : null;
-    if (user && !user.isEmailVerified) {
+    if (user && !user.isEmailVerified && reserveVerificationEmailSlot(user)) {
       const verificationCode = randomInt(100000, 1000000).toString();
       user.verificationCode = hashToken(verificationCode);
       user.verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
