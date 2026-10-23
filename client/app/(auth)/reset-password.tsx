@@ -4,7 +4,6 @@ import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { AuthAlert, AuthButton, AuthCard, AuthInput } from '@/features/auth/components';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { resetPasswordSchema } from '@/features/auth/schemas/auth.schema';
-import { theme } from '@/constants/theme';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
