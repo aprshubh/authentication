@@ -51,7 +51,7 @@ export default function ForgotPasswordScreen() {
     try {
       const response = await forgotPassword({ email: result.data.email });
       setSuccessMessage(
-        response?.message || 'If an account exists, a secure recovery code has been sent.'
+        response?.message || 'If an account exists, a recovery token has been sent.'
       );
     } catch {
       // Handled by auth context
@@ -61,7 +61,7 @@ export default function ForgotPasswordScreen() {
   return (
     <AuthCard
       title="Reset Password"
-      subtitle="Enter your email to receive a recovery link"
+      subtitle="Enter your email to receive a recovery token"
     >
       <AuthAlert type="error" message={authError} />
       <AuthAlert type="success" message={successMessage} />
@@ -80,7 +80,7 @@ export default function ForgotPasswordScreen() {
       />
 
       <AuthButton
-        title="Send Recovery Link"
+        title="Send Recovery Token"
         onPress={handleSubmit}
         isLoading={isLoading}
       />
