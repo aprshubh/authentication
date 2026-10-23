@@ -3,7 +3,6 @@ import { randomInt } from 'node:crypto';
 import type { RequestHandler } from 'express';
 import { env } from '../config/env.js';
 import {
-  sendEmail,
   sendPasswordResetEmail,
   sendVerificationOtpEmail,
   sendWelcomeEmail,
