@@ -59,8 +59,6 @@ export default function LoginScreen() {
     <AuthCard
       title="Welcome Back"
       subtitle="Sign in to your account"
-      iconName="lock-closed-outline"
-      badgeText="SECURE LOGIN"
     >
       <AuthAlert type="error" message={authError} />
 
