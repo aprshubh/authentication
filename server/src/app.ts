@@ -6,6 +6,11 @@ import { env } from './config/env.js';
 
 const app = express();
 
+// Trust only explicitly configured reverse-proxy hops; never blindly trust X-Forwarded-For.
+if (env.TRUST_PROXY_HOPS > 0) {
+  app.set('trust proxy', env.TRUST_PROXY_HOPS);
+}
+
 const allowedOrigins = new Set(
   env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
 );
