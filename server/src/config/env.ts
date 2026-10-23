@@ -16,6 +16,9 @@ const envSchema = z.object({
 
   CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173,http://localhost:8081,http://localhost:19006'),
 
+  // Set to the exact number of trusted reverse-proxy hops in production (commonly 1 on Render).
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
+
   // Resend Email Service
   RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY cannot be empty').optional(),
   RESEND_FROM_EMAIL: z.string().min(1, 'RESEND_FROM_EMAIL cannot be empty').optional(),
