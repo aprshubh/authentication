@@ -17,12 +17,11 @@ export default function VerifyEmailScreen() {
   } = useAuth();
   const [code, setCode] = useState('');
   const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
+  const [isSending, setIsSending] = useState(true);
   const [screenError, setScreenError] = useState('');
 
   useEffect(() => {
     let active = true;
-    setIsSending(true);
     sendVerificationEmail()
       .then((response) => {
         if (active) setMessage(response.message || 'A verification code has been sent.');
