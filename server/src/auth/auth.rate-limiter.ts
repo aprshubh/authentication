@@ -32,10 +32,9 @@ export const createRateLimiter = ({
   cleanupInterval.unref();
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    const clientIp =
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-      req.socket.remoteAddress ||
-      'unknown-ip';
+    // Use Express's resolved IP. Do not trust X-Forwarded-For directly;
+    // configure app.set('trust proxy', ...) only for known reverse proxies.
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown-ip';
 
     const now = Date.now();
     let record = store.get(clientIp);
@@ -77,4 +76,22 @@ export const forgotPasswordLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
   message: 'Too many password reset requests. Please try again after an hour.',
+});
+
+export const refreshTokenLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: 'Too many refresh attempts. Please try again later.',
+});
+
+export const verificationLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: 'Too many email verification attempts. Please try again after an hour.',
+});
+
+export const sendVerificationLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: 'Too many verification emails requested. Please try again after an hour.',
 });
