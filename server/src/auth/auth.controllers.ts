@@ -181,11 +181,16 @@ export const logoutUser: RequestHandler = async (req, res) => {
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     if (refreshToken) {
       const payload = verifyRefreshToken(refreshToken);
-      if (payload?.email) {
-        await User.updateOne(
-          { email: payload.email, sessionId: payload.sessionId },
-          { $set: { refreshToken: '', sessionId: '' } }
-        );
+      if (payload?.email && payload.sessionId) {
+        const user = await User.findOne({
+          email: payload.email,
+          sessionId: payload.sessionId,
+        });
+        if (user) {
+          user.refreshToken = '';
+          user.sessionId = '';
+          await user.save();
+        }
       }
     }
 
