@@ -188,7 +188,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const response = await authApi.verifyEmail(payload);
-      setUser((prev) => (prev ? { ...prev, isEmailVerified: true } : null));
+      if (user) {
+        const verifiedUser = { ...user, isEmailVerified: true };
+        setUser(verifiedUser);
+        await storage.setItem(STORAGE_KEYS.USER, JSON.stringify(verifiedUser));
+      } else {
+        setUser((prev) => (prev ? { ...prev, isEmailVerified: true } : null));
+      }
       return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Email verification failed.';
@@ -197,7 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const updateAvatar = useCallback((avatarUrl: string) => {
     setUser((prev) => {
