@@ -1,7 +1,6 @@
 import { env } from '../config/env.js';
 import {
   createPasswordResetEmail,
-  createVerificationEmail,
   createVerificationOtpEmail,
   createWelcomeEmail,
   type EmailContent,
@@ -74,12 +73,6 @@ export const sendEmail = async ({
 
 export const sendWelcomeEmail = (to: string, name: string) =>
   sendEmail({ to, ...createWelcomeEmail(name) });
-
-export const sendVerificationEmail = (
-  to: string,
-  name: string,
-  verificationUrl: string,
-) => sendEmail({ to, ...createVerificationEmail(name, verificationUrl) });
 
 export const sendVerificationOtpEmail = (
   to: string,
