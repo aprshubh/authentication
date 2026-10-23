@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { AuthAlert, AuthButton, AuthCard, AuthInput } from '@/features/auth/components';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { theme } from '@/constants/theme';
 import { resetPasswordSchema } from '@/features/auth/schemas/auth.schema';
 
 export default function ResetPasswordScreen() {
