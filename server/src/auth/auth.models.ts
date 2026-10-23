@@ -13,6 +13,9 @@ export interface IUser {
   resetPasswordExpires?: Date;
   verificationCode?: string;
   verificationExpires?: Date;
+  verificationLastSentAt?: Date;
+  verificationSentWindowStart?: Date;
+  verificationSentCount?: number;
 }
 
 const userSchema = new Schema<IUser>(
@@ -74,6 +77,19 @@ const userSchema = new Schema<IUser>(
     verificationExpires: {
       type: Date,
       required: false,
+    },
+    verificationLastSentAt: {
+      type: Date,
+      required: false,
+    },
+    verificationSentWindowStart: {
+      type: Date,
+      required: false,
+    },
+    verificationSentCount: {
+      type: Number,
+      required: false,
+      default: 0,
     },
   },
   { timestamps: true },
