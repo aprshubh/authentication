@@ -14,6 +14,7 @@ const getBaseUrl = (): string => {
 export const API_BASE_URL = getBaseUrl();
 
 let authToken: string | null = null;
+let onSessionExpired: (() => void) | null = null;
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string | null) => void> = [];
 
@@ -28,6 +29,10 @@ const addRefreshSubscriber = (callback: (token: string | null) => void) => {
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
+};
+
+export const setOnSessionExpired = (callback: (() => void) | null) => {
+  onSessionExpired = callback;
 };
 
 export const getAuthToken = (): string | null => {
@@ -67,6 +72,7 @@ const refreshAccessTokenSilent = async (): Promise<string | null> => {
       await storage.removeItem('auth_refresh_token');
       await storage.removeItem('auth_user');
       setAuthToken(null);
+      onSessionExpired?.();
       return null;
     }
 
