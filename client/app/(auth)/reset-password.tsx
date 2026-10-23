@@ -81,8 +81,6 @@ export default function ResetPasswordScreen() {
     <AuthCard
       title="New Password"
       subtitle="Enter your token and set a new password"
-      iconName="shield-checkmark-outline"
-      badgeText="SECURE RESET"
     >
       <AuthAlert type="error" message={authError} />
       <AuthAlert type="success" message={successMessage} />
