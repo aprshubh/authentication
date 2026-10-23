@@ -299,6 +299,11 @@ export const forgotPassword: RequestHandler<
         await sendPasswordResetEmail(user.email, user.name, resetToken);
       } catch (mailError) {
         console.error('Password reset email delivery failed:', mailError);
+        user.set({
+          resetPasswordToken: undefined,
+          resetPasswordExpires: undefined,
+        });
+        await user.save();
       }
     }
 
