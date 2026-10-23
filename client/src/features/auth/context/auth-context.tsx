@@ -170,6 +170,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const response = await authApi.resetPassword(payload);
+      await storage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      await storage.removeItem(STORAGE_KEYS.USER);
+      setUser(null);
+      setToken(null);
+      setRefreshToken(null);
+      setAuthToken(null);
       return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Password reset failed. Please try again.';
