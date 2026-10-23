@@ -365,8 +365,10 @@ export const sendVerificationEmailHandler: RequestHandler = async (
       await sendVerificationOtpEmail(user.email, user.name, verificationCode);
     } catch (mailError) {
       console.error('Verification email delivery failed:', mailError);
-      user.verificationCode = undefined;
-      user.verificationExpires = undefined;
+      user.set({
+        verificationCode: undefined,
+        verificationExpires: undefined,
+      });
       await user.save();
       res.status(502).json({ message: 'Unable to send verification email. Please try again later.' });
       return;
