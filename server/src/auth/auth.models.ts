@@ -8,6 +8,7 @@ export interface IUser {
   avatar?: string;
   avatarFileId?: string;
   refreshToken?: string;
+  sessionId?: string;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   verificationCode?: string;
@@ -49,6 +50,11 @@ const userSchema = new Schema<IUser>(
       default: '',
     },
     refreshToken: {
+      type: String,
+      required: false,
+      default: '',
+    },
+    sessionId: {
       type: String,
       required: false,
       default: '',
