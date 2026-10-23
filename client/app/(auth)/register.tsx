@@ -92,8 +92,6 @@ export default function RegisterScreen() {
     <AuthCard
       title="Create Account"
       subtitle="Join with a secure account"
-      iconName="person-add-outline"
-      badgeText="NEW ACCOUNT"
     >
       <AuthAlert type="error" message={authError} />
 
