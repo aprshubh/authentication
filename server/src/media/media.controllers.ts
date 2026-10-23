@@ -37,24 +37,26 @@ export const uploadAvatar: RequestHandler = async (req: AuthenticatedRequest, re
       return;
     }
 
-    // Delete previous avatar from ImageKit if it exists
-    if (user.avatarFileId) {
-      try {
-        await deleteFromImageKit(user.avatarFileId);
-      } catch (delError) {
-        console.warn('Failed to delete old avatar:', delError);
-      }
-    }
-
+    // Upload first so a failed replacement never destroys the existing avatar.
     const uploadResult = await uploadToImageKit({
       file,
       fileName: fileName || `avatar_${user.id}_${Date.now()}.jpg`,
       folder: '/avatars',
     });
 
+    const previousAvatarFileId = user.avatarFileId;
     user.avatar = uploadResult.url;
     user.avatarFileId = uploadResult.fileId;
     await user.save();
+
+    if (previousAvatarFileId && previousAvatarFileId !== uploadResult.fileId) {
+      try {
+        await deleteFromImageKit(previousAvatarFileId);
+      } catch (delError) {
+        // The new avatar is already saved; keep it working and log the orphan for cleanup.
+        console.warn('Failed to delete previous avatar:', delError);
+      }
+    }
 
     res.status(200).json({
       message: 'Avatar uploaded successfully',
