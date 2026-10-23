@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { setAuthToken } from '@/lib/api-client';
+import { setAuthToken, setOnSessionExpired } from '@/lib/api-client';
 import { storage } from '@/utils/storage';
 import { authApi } from '../api/auth.api';
 import {
@@ -49,6 +49,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearError = useCallback(() => {
     setError(null);
+  }, []);
+
+  useEffect(() => {
+    setOnSessionExpired(() => {
+      setUser(null);
+      setToken(null);
+      setRefreshToken(null);
+      setError('Your session expired or was used on another device. Please sign in again.');
+      void storage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      void storage.removeItem(STORAGE_KEYS.USER);
+    });
+    return () => setOnSessionExpired(null);
   }, []);
 
   // Restore saved session on app mount
