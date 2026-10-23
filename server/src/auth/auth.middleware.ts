@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { verifyAccessToken } from './auth.services.js';
 import type { IUser } from './auth.models.js';
 import { User } from './auth.models.js';
@@ -51,8 +51,8 @@ const authenticateUser = async (
   }
 };
 
-export const authenticate: typeof authenticateUser = (req, res, next) =>
-  authenticateUser(req, res, next, true);
+export const authenticate: RequestHandler = (req, res, next) =>
+  void authenticateUser(req as AuthenticatedRequest, res, next, true);
 
-export const authenticateAllowUnverified: typeof authenticateUser = (req, res, next) =>
-  authenticateUser(req, res, next, false);
+export const authenticateAllowUnverified: RequestHandler = (req, res, next) =>
+  void authenticateUser(req as AuthenticatedRequest, res, next, false);
