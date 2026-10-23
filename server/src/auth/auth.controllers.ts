@@ -449,7 +449,7 @@ export const resendVerificationEmailPublic: RequestHandler = async (req, res) =>
     }
 
     res.status(200).json({
-      message: 'If this account exists and needs verification, a code has been sent.',
+      message: 'If this account exists and needs verification, a code will be sent shortly.',
     });
   } catch (error) {
     console.error('Public verification request failed:', error);
