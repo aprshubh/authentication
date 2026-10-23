@@ -14,6 +14,8 @@ const envSchema = z.object({
     .string()
     .min(32, 'REFRESH_TOKEN_SECRET must be at least 32 characters'),
 
+  CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173,http://localhost:8081,http://localhost:19006'),
+
   // Resend Email Service
   RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY cannot be empty').optional(),
   RESEND_FROM_EMAIL: z.string().min(1, 'RESEND_FROM_EMAIL cannot be empty').optional(),
